@@ -1,0 +1,57 @@
+This package takes a grib file of model output and calculates tangential and radial wind components by using a TC center found by a vortex recentering algorithm written by Micahel Fischer. 
+Package written by Tyler Green: 12/4/20
+
+Code dependencies:
+------------------
+ cfgrib
+ f90nml
+ netCDF4
+ numpy
+ matplotlib
+ xarray
+
+These should be easily installed with conda and one pip install. Example:
+(This will create a new python virtual environment, if not wanted, just run these commands in your existing envrionment)
+
+$ conda create -n myenv python=3.8
+$ conda activate myenv
+$ conda install -c conda-forge cfgrib
+$ conda install -c conda-forge netcdf4
+$ conda install -c conda-forge numpy
+$ conda install -c conda-forge matplotlib
+$ conda install -c conda-forge xarray
+$ pip install f90nml
+
+Instructions to run
+-------------------
+1. Modify 'namelist.input' for their case (important that your 'vertical_option' input is valid, see below namelist specs)
+2. run command $ python run_process_trwind.py
+
+Namelist specifications
+-----------------------
+Here is the list of namelist parameters and what they do:
+
+(all inputs with * beside them are mandatory, the main script will stop running if they aren't provided) 
+
+ &inputs
+  *  1. input_file (string) : full path to input grib file to read 
+  *  2. all_levels (bool)   : whether to process all vertical levels in input_file or not, if this is ".false.", then the namelist parmeter: 'levels' needs to be set
+  *  3. vertical_option (string) : the name of the vertical coordinate, the options for this are located in vertical_options.py. One of the dictonary keys should be chosen, which then maps to what that vertical coorindate is called in grib format. If needed, options can be added to this dictionary for vertical coordinates that are not currently present
+     4. levels (float or list of floats) : comma seperated list of vertical levels to process. These should correspond to whatever vertical coordinate chosen. These will only be used if 'all_levels' namelist parameter is ".false."
+     5. output_dir (string) : path to directory for outputing plots and nc file. If it is not provided, it will take the directory that 'input_file' is in
+     6. lat_guess (float) : first guess for TC center latitude, if you don't want to make a guess, just leave it out of the namelist and it will be set to 'None'
+     7. lon_guess (float) : same as above but for longitude
+     8. plot (bool) : whether to make plots or not for tangential wind at each vertical level, if not in namelist, it is set to 'False'
+     9. output_file (string) : filename that will be used to write tangential/radial & lat/lon centers to. It nees to have a .nc extension. If a name is not provided, the input_file will be appended with a "_rtwind.nc" extension. This file is written to the 'output_dir'
+
+
+ &vortex_finder_input
+   * 1. grid_cut (integer) : width of the grid to cut/2 (in both dimensions lat/lon) this needs to be relatively small to avoid running out of RAM, 75 seems to work well
+   * 2. num_sectors (integer) : see 'vortex_recenter.py' docstring
+   * 3. dist_coeff  (float) : ' '
+   * 4. wind_coeff (float) : ' '
+   * 5. rxpad (float) : ' '
+
+See 'sample_namelist' for the full list of possible inputs
+
+

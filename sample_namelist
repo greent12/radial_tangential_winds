@@ -1,0 +1,19 @@
+&inputs
+ input_file = "/Users/tylergreen/python_codes/prod/calc_twind/test/wrfout_201610061500_d03.grib"
+ all_levels = .false.
+ vertical_option = "height_above_sea"
+ levels = 1000., 2000. 
+ output_dir="./output"
+ lat_guess = 25.8
+ lon_guess = -78.3
+ plot=.true.
+ output_file="test.nc"
+/
+
+&vortex_finder_input
+ grid_cut=75
+ num_sectors=1
+ dist_coeff=5.
+ wind_coeff=2.
+ rxpad = -5.
+/
