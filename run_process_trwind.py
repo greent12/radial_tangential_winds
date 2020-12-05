@@ -15,7 +15,7 @@ from recenter_utils import cut_latlons,cut_uv_grids
 from main_tools \
    import read_namelist,initialize_read_data, extract_vertical_coords, \
           get_vert_indicies,create_output_directory,extract_uv_winds, \
-          save_data
+          plot_winds_pressure_heights,save_data
 
 ###############################################################################
 # START CODE EXECUTION
@@ -27,7 +27,6 @@ inputs,vortex_parms = read_namelist("namelist.input")
 #Initialize
 data,vertical_name = initialize_read_data(inputs['input_file'],\
                                           inputs['vertical_option'])
-
 #Extract coordinate values from data
 verts,lats,lons,latlon_dim = extract_vertical_coords(data,vertical_name)
 
@@ -91,17 +90,8 @@ for zcounter,zi in enumerate(vert_indicies):
 
    #Make plot
    if inputs['plot']:
-      fig,ax = plt.subplots()
-      cf=ax.contourf(lons2d,lats2d,twind_zi,np.arange(-10.,65.,5.))
-      ax.plot(tc_lon,tc_lat,'ro',label="Found Vortex Center")
-      ax.set_xlabel("Longitude")
-      ax.set_ylabel("Latitude")
-      ax.set_title("Tangential Wind at level: {} {}".format(verts[zi],vertical_name))
-      cbar=plt.colorbar(cf)
-      cbar.set_label("m/s")
-      plt.legend()
-      plt.savefig(inputs['output_dir']+"/"+"twind_{}_{}.png".format(verts[zi],vertical_name),dpi=300)
-
+      plot_winds_pressure_heights(lons2d,lats2d,verts,zi,u3d,v3d,data,vertical_name,tc_lon,tc_lat,inputs['output_dir'])
+ 
 #Save data to nc file
 save_data(verts_processed,vertical_name,lats,lons,rwind,twind,tc_lons,tc_lats,inputs['output_dir'],inputs['output_file'])
 

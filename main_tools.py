@@ -5,6 +5,7 @@ import xarray as xr
 import numpy as np
 import f90nml
 from netCDF4 import Dataset
+import matplotlib.pyplot as plt
 
 def read_namelist(namelist):
    '''
@@ -279,6 +280,87 @@ def extract_uv_winds(data_array):
    vwind_3d = data_array.v.values
 
    return uwind_3d,vwind_3d
+
+def plot_winds_pressure_heights(lons,lats,verts,zi,u3d,v3d,data_array,vertical_name,tc_lon,tc_lat,output_dir):
+   '''
+    This function plots scalar wind, quivers the wind, then tries to contour either pressure or geopotential heights depending on what the vertical coordinate is
+
+    Parameters
+    ----------
+    lons : numpy.ndarray
+      2d mesh of lons
+    lats : numpy.ndarray
+      2d mesh of lats
+    verts : numpy.ndarray
+      1d array of vertical levels
+    zi : int
+      vertical level being plotted
+    u3d : numpy.ndarray
+      3d array of uwind
+    v3d : numpy.ndarray
+      3d array of vwind
+    data_array : xarray.core.dataset.Dataset
+      xarray dataset to grab geopotential heights or pressures from
+    vertical_name : str
+      name of vertical coordinate in grib file
+    tc_lon : float (Can be none)
+      tc center longitude
+    tc_lat : float (Can be none)
+      tc center latitude
+    ouput_dir : str
+      path to output directory to save plots
+
+    Returns
+    -------
+    nothing
+
+   '''
+
+   #Number of vectors to skip in quiver
+   skip=20
+
+   #Calculate scalar wind speed
+   V = np.sqrt(u3d[zi,:,:]**2+v3d[zi,:,:]**2)
+
+   #Create plot
+   fig,ax = plt.subplots()
+   cf = ax.contourf(lons,lats,V,np.arange(0,65,5)) #m/s
+   title="Scalar Wind Speed, Vectors, \n {} {}".format(verts[zi],vertical_name)
+ 
+   #Try to find and plot either heights (if in pressure coords) or pressure (if in height coords) 
+   if vertical_name == "heightAboveSea":
+      try:
+         pres = data_array.pres.values
+         cs = ax.contour(lons,lats,pres[zi,:,:],colors="black")
+         ax.clabel(cs, cs.levels[::2], inline=True, fontsize=4, fmt="%d")
+         title="Scalar Wind Speed, Vectors, and Pressure,\n {} {}".format(verts[zi],vertical_name)
+      except:
+         pass
+   elif vertical_name == "isobaricInhPa":
+      try:
+         gh = data_array.gh.values
+         cs = ax.contour(lons,lats,gh[zi,:,:],colors="black")
+         ax.clabel(cs, cs.levels[::2], inline=True, fontsize=4,fmt="%d")
+         title="Scalar Wind Speed, Vectors, and Geopotential Height (m),\n {} {}".format(verts[zi],vertical_name)
+      except:
+         pass
+
+   ax.quiver(lons[::skip,::skip],lats[::skip,::skip],u3d[zi,::skip,::skip],v3d[zi,::skip,::skip])
+
+   try:
+      ax.plot(tc_lon,tc_lat,'ro',label="Found Vortex Center")
+   except:
+      pass
+
+   ax.set_xlabel("Longitude")
+   ax.set_ylabel("Latitude") 
+
+   cbar=plt.colorbar(cf)
+   cbar.set_label("m/s")
+   plt.legend(loc='upper left')
+   plt.title(title)
+
+   plt.savefig(output_dir+"/"+"wind_{}_{}.png".format(verts[zi],vertical_name),dpi=300)
 
 def save_data(verts,vertname,lats,lons,rwind,twind,tc_lons,tc_lats,output_dir,filename):
    
