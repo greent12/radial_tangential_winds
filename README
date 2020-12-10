@@ -24,8 +24,9 @@ $ pip install f90nml
 
 Instructions to run
 -------------------
-1. Modify 'namelist.input' for their case (important that your 'vertical_option' input is valid, see below namelist specs)
-2. run command $ python run_process_trwind.py
+1. Copy 'sample_namelist' to 'namelist.input'
+2. Modify 'namelist.input' for their case (important that your 'vertical_option' input is valid, see below namelist specs)
+3. run command $ python run_process_trwind.py
 
 Namelist specifications
 -----------------------
