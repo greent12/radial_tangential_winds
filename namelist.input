@@ -1,13 +1,13 @@
 &inputs
- input_file = "/Users/tylergreen/Desktop/DORA04E_201107222200_Postr_Mean.grib"
- output_dir="/Users/tylergreen/Desktop/dorian"
- all_levels = .true.
- levels = 0.,500.,1000.,1500.,2000.,2500.,3000.,3500.,4000.,4500.,5000.
- vertical_option = "pressure"
+ input_file="/Users/tylergreen/wrfout_201610061900_d03.grib"
+ output_dir="/Users/tylergreen/test_llc"
+ all_levels = .false.
+ levels = 0.,500.
+ vertical_option = "height_above_sea"
  plot=.true.
- lat_guess=20.0
- lon_guess=-109.75
- output_file="dorian_test.nc"
+ lat_guess=25.8
+ lon_guess=-78.3
+ output_file="matthew_201610061900_back_trwind.nc"
 /
 
 &vortex_finder_input
@@ -15,5 +15,5 @@
  num_sectors=1
  dist_coeff=5.
  wind_coeff=2.
- rxpad = 10.
+ rxpad = -5.
 /

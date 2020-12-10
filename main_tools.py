@@ -413,23 +413,23 @@ def save_data(verts,vertname,lats,lons,rwind,twind,tc_lons,tc_lats,output_dir,fi
    vert_var[:] = verts
 
    if lats.ndim==1 and lons.ndim==1:
-      lat_dim = ncfile.createDimension('lat',len(lats))
-      lat_var = ncfile.createVariable('lats',np.float32,('lat'))
+      lat_dim = ncfile.createDimension('y',len(lats))
+      lat_var = ncfile.createVariable('latitude',np.float32,('y'))
       lat_var[:] = lats
 
-      lon_dim = ncfile.createDimension('lon',len(lons))
-      lon_var = ncfile.createVariable('lons',np.float32,('lon'))
+      lon_dim = ncfile.createDimension('x',len(lons))
+      lon_var = ncfile.createVariable('longitude',np.float32,('x'))
       lon_var[:] = lons
    else:
       [nlat,nlon] = np.shape(lats)
 
-      lat_dim = ncfile.createDimension('lat',nlat)
-      lon_dim = ncfile.createDimension('lon',nlon)
+      lat_dim = ncfile.createDimension('y',nlat)
+      lon_dim = ncfile.createDimension('x',nlon)
 
-      lat_var = ncfile.createVariable('lats',np.float32,('lat','lon'))
+      lat_var = ncfile.createVariable('latitude',np.float32,('y','x'))
       lat_var[:,:] = lats
 
-      lon_var = ncfile.createVariable('lons',np.float32,('lat','lon'))
+      lon_var = ncfile.createVariable('longitude',np.float32,('y','x'))
       lon_var[:,:] = lons
 
    lat_var.units = "degrees_north"
@@ -438,15 +438,17 @@ def save_data(verts,vertname,lats,lons,rwind,twind,tc_lons,tc_lats,output_dir,fi
    lon_var.long_name = "longitude"
    
    #Write variables
-   twind_var = ncfile.createVariable('twind',np.float32,(vertname,'lat','lon'))
+   twind_var = ncfile.createVariable('twind',np.float32,(vertname,'y','x'))
    twind_var[:,:,:] = twind
    twind_var.units = "meters_per_second"
    twind_var.long_name = "tangential wind component"
+   twind_var.setncattr("coordinates","latitude longitude") 
   
-   rwind_var = ncfile.createVariable('rwind',np.float32,(vertname,'lat','lon'))
+   rwind_var = ncfile.createVariable('rwind',np.float32,(vertname,'y','x'))
    rwind_var[:,:,:] = rwind
    rwind_var.units = "meters_per_second"
    rwind_var.long_name = "radial wind component"
+   rwind_var.setncattr("coordinates","latitude longitude")
 
    tc_lons_var = ncfile.createVariable('tc_center_lons',np.float32,(vertname))
    tc_lons_var[:] = tc_lons
