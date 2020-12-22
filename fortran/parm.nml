@@ -1,0 +1,13 @@
+&parm
+  num_sectors=4,
+  dist_coeff=5.0,
+  wind_coeff=2.0,
+  rxpad=10.0,
+  olon=-78.3,
+  olat=25.8,
+  num_iterations=50,
+  spad=5,
+  curr_delta=1.0,
+  gr0=1.0,
+  grf=175
+/  
