@@ -5,6 +5,8 @@ warnings.filterwarnings("ignore")
 import xarray as xr
 import os
 import matplotlib.pyplot as plt 
+import matplotlib
+matplotlib.use('Agg')
 
 #My imports
 from uv_to_rt_winds import uv_to_rt
