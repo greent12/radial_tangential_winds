@@ -8,6 +8,7 @@
  lon_guess = -78.3
  plot=.true.
  output_file="test.nc"
+ use_pres_first_guess = .true.
 /
 
 &vortex_finder_input
@@ -16,4 +17,6 @@
  dist_coeff=5.
  wind_coeff=2.
  rxpad = -5.
+ spad = 5
+ num_iterations = 50
 /

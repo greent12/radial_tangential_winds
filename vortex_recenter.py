@@ -10,7 +10,7 @@ import recenter_utils
 #fortran import, could be used but still needs work
 #from ideal_angle import create_ideal_angle
 
-def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_coeff,rxpad,olon=None,olat=None):
+def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_coeff,rxpad,spad,num_iterations,olon=None,olat=None):
     
    """
     This function is optimized to re-center TDR merged analyses and/or (hopefully) model analyses
@@ -33,8 +33,11 @@ def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_co
     7) dist_coeff is the coefficient to weight the distance errors (recommend this to be > than wind_coeff).
     8) wind_coeff is the coefficient to weight the wind speed errors (recommend this to be < than dist_coeff).
     9) rxpad is the radial distance in km past the RMW to weight winds for error calculations 
-    10) olon is the first-guess center longitude (float). Default is None, and midpoint of grid will be used.
-    11) olat is the first-guess center latitude (float). Default is None, and midpoint of grid will be used.
+    10) spad is the number of gridpoints in each direction from the center/2 to search for maximizing weighted 
+        tangential wind difference
+    11) num_iterations is the amount of times to loop to try to find a center that converges
+    12) olon is the first-guess center longitude (float). Default is None, and midpoint of grid will be used.
+    13) olat is the first-guess center latitude (float). Default is None, and midpoint of grid will be used.
 
    Written by Michael Fischer, HRD
    Moddified by Tyler Green:
@@ -42,9 +45,7 @@ def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_co
    Last : 12/21/20
    """
     
-   # Establish some constants:
-   num_iterations = 50 # Maximum number of iterations to search for TC center
-   spad = 5 # Number of grid points adjacent to presumed center to perform re-centering search
+   #Sectors to process 
    angle_thresh = np.linspace(-1.*np.pi,np.pi,num_sectors+1) # Bounds of azimuthal sectors to average angle errors
 
    #Tyler changed rad_gaussian creation, look for RMW every 1km
@@ -246,7 +247,9 @@ def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_co
    del pnxi
 
    #If the estimate for tc center did not converge, return None for both
-   if not converged:
+   # This will only happen if this routine is called with num_iterations parameter
+   # greater than 1
+   if num_iterations >1 and not converged:
       return None,None
  
    return tc_center_lon,tc_center_lat

@@ -41,6 +41,7 @@ def read_namelist(namelist):
      7. lon_guess (float) : same as above but for longitude
      8. plot (bool) : whether to make plots or not for tangential wind at each vertical level, if not in namelist, it is set to 'False'
      9. output_file (string) : filename that will be used to write tangential/radial & lat/lon centers to. It nees to have a .nc extension. If a name is not provided, the input_file will be appended with a "_rtwind.nc" extension. This file is written to the 'output_dir'
+     10. use_pres_first_guess (bool) : When in height coords, use location of min pressure on a height surface as a first guess
 
    &vortex_finder_input
     1. grid_cut (integer) : width of the grid to cut/2 (in both dimensions lat/lon) this needs to be relatively small to avoid running out of RAM, 75 seems to work well
@@ -48,6 +49,8 @@ def read_namelist(namelist):
     3. dist_coeff  (float) : ' '
     4. wind_coeff (float) : ' '
     5. rxpad (float) : ' '
+    6. spad  (int) : ' '
+    7. num_iterations (int) : ' '
 
     A full list of namelist option are available in "sample_namelist"
 
@@ -57,7 +60,7 @@ def read_namelist(namelist):
 
    #Establish list of mandatory namelist parameters, if one of these is missing code will exit
    mandatory_main = ["input_file","all_levels","vertical_option"]
-   mandatory_vortex = [ "grid_cut","num_sectors","dist_coeff","wind_coeff","rxpad" ]
+   mandatory_vortex = [ "grid_cut","num_sectors","dist_coeff","wind_coeff","rxpad","spad","num_iterations" ]
 
    #Try reading the namelist, if there's an exception, code will exit
    try:
@@ -131,6 +134,11 @@ def read_namelist(namelist):
       if not output_file.endswith(".nc"):
          print("  Make sure 'output_file' ends with '.nc' ... exiting...")
          sys.exit()
+
+   #If no option for 'use_pres_first_guess' is provided, make it false
+   if "use_pres_first_guess" not in main_inputs:
+      main_inputs.update({"use_pres_first_guess" : False })
+      print("No 'use_pres_first_guess' provided, setting to False")
 
    return main_inputs,vortex_inputs
 
@@ -281,7 +289,7 @@ def extract_uv_winds(data_array):
 
    return uwind_3d,vwind_3d
 
-def plot_winds_pressure_heights(lons,lats,verts,zi,u3d,v3d,data_array,vertical_name,tc_lon,tc_lat,output_dir):
+def plot_winds_pressure_heights(lons,lats,verts,zi,u3d,v3d,data_array,vertical_name,tc_lon,tc_lat,fg_lon,fg_lat,output_dir):
    '''
     This function plots scalar wind, quivers the wind, then tries to contour either pressure or geopotential heights depending on what the vertical coordinate is
 
@@ -307,6 +315,10 @@ def plot_winds_pressure_heights(lons,lats,verts,zi,u3d,v3d,data_array,vertical_n
       tc center longitude
     tc_lat : float (Can be none)
       tc center latitude
+    fg_lon : float (Can be none)
+      first guess center longitude
+    fg_lat : float (Can be none)
+      first guess center latitude
     ouput_dir : str
       path to output directory to save plots
 
@@ -348,8 +360,13 @@ def plot_winds_pressure_heights(lons,lats,verts,zi,u3d,v3d,data_array,vertical_n
    ax.quiver(lons[::skip,::skip],lats[::skip,::skip],u3d[zi,::skip,::skip],v3d[zi,::skip,::skip])
 
    try:
-      ax.plot(tc_lon,tc_lat,'ro',label="Found Vortex Center")
+      ax.plot(tc_lon,tc_lat,'ro',label="Found Vortex Center",markersize=4)
    except:
+      pass
+
+   try:
+      ax.plot(fg_lon,fg_lat,'bo',label="First Guess Center",markersize=4)
+   except: 
       pass
 
    ax.set_xlabel("Longitude")
