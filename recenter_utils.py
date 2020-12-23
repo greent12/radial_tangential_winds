@@ -1,6 +1,7 @@
 #Module containing functions used in the finding of vortex center and calculation of tangential winds
 
 #Imports 
+import sys
 from math import radians, cos, sin, asin, sqrt
 import numpy as np
 
@@ -212,3 +213,33 @@ def cut_uv_grids(lons,lats,latlon_dim,u3d,v3d,lon_guess,lat_guess,grid_cut):
    vcut = v3d[np.ix_(np.ones(numvert,dtype=bool),lats_bool,lons_bool)]
 
    return lons2d,lats2d,lonscut,latscut,ucut,vcut
+
+def find_min_pres_loc(data,lev):
+
+   #Check to see whether pressure field exists, if not exit
+   if not "pres" in data.variables:
+      print("Pressure is not a field in dataset, stopping...")
+      sys.exit()
+
+   #Get pressure data for wanted level, at the point that this routine is called,
+   # any level wanted will have already been qc'd in a sense that if the level didn't
+   # exist it wouldn't be able to be passed here so we don't have to worry about that
+   pres = data.pres.values[lev,:,:]
+   
+   #Find where the min value is 
+   where = np.where(pres == np.nanmin(pres))  
+   where_lat_indx = where[0][0]
+   where_lon_indx = where[1][0]
+
+   #Get lat and lon of these indicies
+   lats = data.latitude.values
+   lons = data.longitude.values
+   if lats.ndim == 1 and lons.ndim == 1:
+      return lats[where_lat_indx], lons[where_lon_indx]
+   elif lats.ndim == 2 and lons.ndim == 2:
+      return lats[where_lat_indx,where_lon_indx],\
+             lons[where_lat_indx,where_lon_indx]
+   else:
+      print("Lats or lons are not 1/2 dimensional, exitting...")
+      sys.exit()
+

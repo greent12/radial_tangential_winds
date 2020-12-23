@@ -1,2 +1,4 @@
 __pycache__
 namelist.input
+*.swp
+fortran/*.o
