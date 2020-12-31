@@ -21,16 +21,20 @@ REAL(KIND=single) :: dist_coeff,wind_coeff,rxpad,olon,olat,curr_delta,gr0
 
 INTEGER :: pnxi,pnyi,xloc,yloc,ybi,xbi
 INTEGER, DIMENSION(1) :: rmw_indx
+INTEGER, DIMENSION(2) :: min_curr_mean_dif_array_indx
 REAL(KIND=single),ALLOCATABLE :: angle_thresh(:),rad_gaussian(:),&
                                  vt_ann_azi(:),sector_mean_error(:,:,:)
-REAL(KIND=single),DIMENSION(GRIDDIMY,GRIDDIMX) :: ws,XD,YD, &
-                  angle, curr_dist, curr_rw, curr_vt, dist_weight, &
-                  curr_weight,curr_angle_dif, curr_weighted_dif
+REAL(KIND=single),ALLOCATABLE :: ws(:,:),XD(:,:),YD(:,:), &
+                                 angle(:,:), curr_dist(:,:), curr_rw(:,:),&
+                                 curr_vt(:,:), dist_weight(:,:), &
+                                 curr_weight(:,:),curr_angle_dif(:,:),&
+                                 curr_weighted_dif(:,:),curr_mean_dif_array(:,:)
 REAL(KIND=single) :: prev_mean_dif=FILL_VAL,tc_center_lon, &
                      tc_center_lat,vt_azi_max,curr_rmw,& 
                      ws_max,angle_upper,angle_lower,curr_mean_dif
-REAL(KIND=single),DIMENSION(GRIDDIMY,GRIDDIMX,GRIDDIMY,GRIDDIMX) :: the_ideal_angle
-LOGICAL,DIMENSION(GRIDDIMY,GRIDDIMX) :: mask_ann,mask_sector
+
+REAL(KIND=single),ALLOCATABLE :: the_ideal_angle(:,:,:,:)
+LOGICAL,ALLOCATABLE :: mask_ann(:,:),mask_sector(:,:)
 
 !Read namelist variables
 NAMELIST/parm/num_sectors,dist_coeff,wind_coeff,rxpad,olon,olat,&
@@ -54,14 +58,40 @@ PRINT*, "gr0",gr0
 PRINT*, "grf",grf
 PRINT*, "*********************************"
 
+!Allocate variables
+!1D:
+ALLOCATE(angle_thresh(num_sectors+1),rad_gaussian(grf),vt_ann_azi(grf))
+
+!2D:
+ALLOCATE(ws(GRIDDIMY,GRIDDIMX),XD(GRIDDIMY,GRIDDIMX),YD(GRIDDIMY,GRIDDIMX), &
+         angle(GRIDDIMY,GRIDDIMX),curr_dist(GRIDDIMY,GRIDDIMX), &
+         curr_rw(GRIDDIMY,GRIDDIMX),curr_vt(GRIDDIMY,GRIDDIMX),dist_weight(GRIDDIMY,GRIDDIMX), &
+         curr_weight(GRIDDIMY,GRIDDIMX),curr_angle_dif(GRIDDIMY,GRIDDIMX),&
+         curr_weighted_dif(GRIDDIMY,GRIDDIMX),mask_ann(GRIDDIMY,GRIDDIMX),&
+         mask_sector(GRIDDIMY,GRIDDIMX))
+
+!3D:
+ALLOCATE(sector_mean_error(num_sectors,GRIDDIMY,GRIDDIMX))
+
+!4D:
+ALLOCATE(the_ideal_angle(GRIDDIMY,GRIDDIMX,GRIDDIMY,GRIDDIMX))
+
 !Initialize and allocate arrays
+angle_thresh = FILL_VAL
+rad_gaussian = FILL_VAL
 ws = FILL_VAL
 XD = 0.0
 YD = 0.0
-
-ALLOCATE(angle_thresh(num_sectors+1),rad_gaussian(grf),&
-         sector_mean_error(num_sectors,GRIDDIMY,GRIDDIMX),&
-         vt_ann_azi(grf))
+angle = 0.0
+curr_dist = FILL_VAL
+curr_rw = FILL_VAL
+curr_vt = FILL_VAL
+dist_weight = FILL_VAL
+curr_weight = FILL_VAL
+curr_angle_dif = FILL_VAL
+curr_weighted_dif = FILL_VAL
+sector_mean_error = FILL_VAL
+the_ideal_angle = FILL_VAL
 
 !Read in a simple case 150 x 150 grids from Hurricane Matthew 19z analysis HWRF run
 CALL load_data(lats,lons,uwind,vwind)
@@ -90,16 +120,21 @@ OUTER: DO n =1,num_iterations  !Replace with num_iterations
    
    !If first iteration has been completed, copy center estimate from previous iteration:
    IF ( n .GT. 1 ) THEN
-      IF ( prev_mean_dif .NE. FILL_VAL ) THEN
          pnyi = yloc
          pnxi = xloc
-      ELSE
-         tc_center_lon = FILL_VAL
-         tc_center_lat = FILL_VAL
-         EXIT OUTER 
-      ENDIF
    ENDIF
- 
+
+   !Allocate array for holding current mean dif
+   ALLOCATE(curr_mean_dif_array(pnyi-spad:pnyi+spad,pnxi-spad:pnxi+spad))
+   curr_mean_dif_array=FILL_VAL 
+
+   !$omp parallel do shared(pnyi,pnxi,spad,lons,lats,uwind,vwind,rad_gaussian,curr_delta,&
+   !$omp& dist_coeff,wind_coeff,ws,ws_max,num_sectors,curr_mean_dif_array,the_ideal_angle, &
+   !$omp& grf,rxpad,angle_thresh) &
+   !$omp& private(ybi,xbi,XD,YD,angle,curr_dist,curr_rw,curr_vt,vt_ann_azi,&
+   !$omp& mask_ann,vt_azi_max,rmw_indx,curr_rmw,dist_weight,curr_weight,&
+   !$omp&  curr_angle_dif,curr_weighted_dif,angle_lower,angle_upper,mask_sector,&
+   !$omp& sector_mean_error, curr_mean_dif,thi) default(none)
    !Loop over meridional grid points
    YPOINT: DO ybi=pnyi-spad,pnyi+spad
       !Loop over zonal grid points
@@ -141,8 +176,8 @@ OUTER: DO n =1,num_iterations  !Replace with num_iterations
          curr_weight = dist_coeff*dist_weight + wind_coeff*(ws/ws_max)
 
          !Compute the angle difference between idealized vortex and observed flow
-         !This Where/Elsewhere block is acting as a array-array that might be
-         ! masked or don's support nan math
+         !This Where/Elsewhere block is acting as a masked-array that might be
+         ! masked or doesn't support nan math
          WHERE (the_ideal_angle(ybi,xbi,:,:) .NE. FILL_VAL)
           curr_angle_dif = ATAN2(vwind,uwind) - the_ideal_angle(ybi,xbi,:,:)
          ELSEWHERE
@@ -188,22 +223,25 @@ OUTER: DO n =1,num_iterations  !Replace with num_iterations
                              sector_mean_error(:,ybi,xbi) &
                              .NE. fill_val,curr_mean_dif)
 
-         !See if current location yields a better center estimate
-         ! than the previous iteration
-         IF (curr_mean_dif .LT. prev_mean_dif) THEN
-           !Important that FILL_VAL is set to positive (large number)
-           ! so that on first iteration prev_mean_dif will be set to 
-           ! curr_mean_dif
-           prev_mean_dif = curr_mean_dif
-           tc_center_lon = lons(ybi,xbi)
-           tc_center_lat = lats(ybi,xbi)
-           yloc = ybi
-           xloc = xbi
-         ENDIF
+         !Stick curr_mean_dif in array
+         curr_mean_dif_array(ybi,xbi) = curr_mean_dif
          
       ENDDO XPOINT
    ENDDO YPOINT
+   !$omp end parallel do
 
+   !Find array index of minimum current mean difference array
+   min_curr_mean_dif_array_indx = MINLOC(curr_mean_dif_array)
+
+   !Deallocate current mean dif array
+   DEALLOCATE(curr_mean_dif_array)
+
+   !Get current estimated location
+   tc_center_lon = lons(pnyi-spad-1+min_curr_mean_dif_array_indx(1),pnxi-spad-1+min_curr_mean_dif_array_indx(2))
+   tc_center_lat = lats(pnyi-spad-1+min_curr_mean_dif_array_indx(1),pnxi-spad-1+min_curr_mean_dif_array_indx(2))
+   yloc = pnyi-spad-1+min_curr_mean_dif_array_indx(1)
+   xloc = pnxi-spad-1+min_curr_mean_dif_array_indx(2)
+ 
    !If the estimate has converged, break from OUTER loop and keep estimate
    IF (n .GT. 1) THEN
      IF (yloc .EQ. pnyi .AND. xloc .EQ. pnxi) THEN
@@ -217,7 +255,9 @@ ENDDO OUTER
 print*, converged
 print*, tc_center_lat,tc_center_lon,xloc,yloc
 
-DEALLOCATE(angle_thresh,rad_gaussian,&
-         sector_mean_error,vt_ann_azi)
+DEALLOCATE(angle_thresh,rad_gaussian,vt_ann_azi,ws,XD,YD,angle,curr_dist,&
+           curr_rw,curr_vt,dist_weight,curr_weight,curr_angle_dif,&
+           curr_weighted_dif,mask_ann,mask_sector,sector_mean_error,&
+           the_ideal_angle) 
 
 END PROGRAM
