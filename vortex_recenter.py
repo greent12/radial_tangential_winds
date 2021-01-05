@@ -137,7 +137,7 @@ def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_co
             # Compute zonal displacement:
             XD = lons - lons[ybi,xbi]
             YD = lats - lats[ybi,xbi]
-            curr_dist = recenter_utils.calc_distance_from_point(lons,lats,lons[ybi,xbi],lats[ybi,xbi])
+            curr_dist = recenter_utils.haversine(lons,lats,lons[ybi,xbi],lats[ybi,xbi],deg=True) #Tyler switched the distance calculating function to just haversine, should be faster
 
             # Compute relative angle:
             angle = np.arctan2(YD,XD) #angle (radians) of each grid point from TC center

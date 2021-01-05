@@ -42,6 +42,8 @@ def read_namelist(namelist):
      8. plot (bool) : whether to make plots or not for tangential wind at each vertical level, if not in namelist, it is set to 'False'
      9. output_file (string) : filename that will be used to write tangential/radial & lat/lon centers to. It nees to have a .nc extension. If a name is not provided, the input_file will be appended with a "_rtwind.nc" extension. This file is written to the 'output_dir'
      10. use_pres_first_guess (bool) : When in height coords, use location of min pressure on a height surface as a first guess
+     11. use_below_lev_first_guess (bool) : If true, 'all_levels' must be true as well. This will find the center lat and lon at the bottommost level, and use that as the first guess for the next level (right now I think this won't work for pressure levels, because they are in ascending order which is backwards in the atmosphere
+     12. center_constant_above (float) : vertical coordinate value that above this, the center will just remain constant, and what it was found to be in the previous vertical level
 
    &vortex_finder_input
     1. grid_cut (integer) : width of the grid to cut/2 (in both dimensions lat/lon) this needs to be relatively small to avoid running out of RAM, 75 seems to work well
@@ -138,7 +140,20 @@ def read_namelist(namelist):
    #If no option for 'use_pres_first_guess' is provided, make it false
    if "use_pres_first_guess" not in main_inputs:
       main_inputs.update({"use_pres_first_guess" : False })
-      print("No 'use_pres_first_guess' provided, setting to False")
+      print("  No 'use_pres_first_guess' provided, setting to False")
+
+   #Use_below_lev_first_guess option
+   if "use_below_lev_first_guess" not in main_inputs:
+      main_inputs.update({"use_below_lev_first_guess" : False })
+      main_inputs.update({"center_constant_above" : 9999.})
+      print("  No ' use_below_lev_first_guess ' option provided, setting to False")
+   else:
+      #For it to be set true, all levels option must be true, this could probably be more complicated, but going to require this as of right now (1/4/21)
+      if not main_inputs['all_levels']:
+         main_inputs.update({"use_below_lev_first_guess" : False })
+         print("  'use_below_lev_first_guess' option is True, but all_levels is not, so setting it to False")
+      if 'center_constant_above' not in main_inputs:
+         main_inputs.update({"center_constant_above" : 9999.})
 
    return main_inputs,vortex_inputs
 
