@@ -9,6 +9,8 @@
  plot=.true.
  output_file="test.nc"
  use_pres_first_guess = .true.
+ use_below_lev_first_guess = .true.
+ center_constant_above = 10000. 
 /
 
 &vortex_finder_input

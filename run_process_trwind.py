@@ -59,6 +59,15 @@ tc_lons = np.full(numvert,np.nan,dtype=float)
 twind = np.full((numvert,J,I),np.nan,dtype=float)
 rwind = np.full((numvert,J,I),np.nan,dtype=float)
 
+#If center_constant_above is True, find the level to top processing at
+if inputs['center_constant_above'] != 9999.:
+   try:
+      zi_last = np.where(verts > inputs['center_constant_above'])[0][0]
+   except:
+      zi_last = len(verts)
+else:
+   zi_last = len(verts)
+
 #Loop through vertical levels
 print("Start processing of input file")
 for zcounter,zi in enumerate(vert_indicies):
@@ -75,16 +84,23 @@ for zcounter,zi in enumerate(vert_indicies):
       lat0,lon0 = find_min_pres_loc(data,zi)
       inputs.update({"lon_guess" : lon0, "lat_guess" : lat0})
 
-   #Find tc center
-   tc_lon,tc_lat= recenter_tc(uwind,vwind,ideal_angle,lonscut,latscut,\
-                              vortex_parms['num_sectors'],\
-                              vortex_parms['dist_coeff'],\
-                              vortex_parms['wind_coeff'],\
-                              vortex_parms['rxpad'],\
-                              vortex_parms['spad'],\
-                              vortex_parms['num_iterations'],\
-                              inputs['lon_guess'],\
-                              inputs['lat_guess'])
+   #If first guess is taken from the vertical level below
+   if inputs["use_below_lev_first_guess"]:
+      if zcounter != 0:
+         inputs.update({"lon_guess" : tc_lon, "lat_guess" : tc_lat}) 
+
+   #Only find tc center if zi counter is less than the zi_last integer
+   if zi < zi_last:
+      #Find tc center
+      tc_lon,tc_lat= recenter_tc(uwind,vwind,ideal_angle,lonscut,latscut,\
+                                 vortex_parms['num_sectors'],\
+                                 vortex_parms['dist_coeff'],\
+                                 vortex_parms['wind_coeff'],\
+                                 vortex_parms['rxpad'],\
+                                 vortex_parms['spad'],\
+                                 vortex_parms['num_iterations'],\
+                                 inputs['lon_guess'],\
+                                 inputs['lat_guess'])
 
    #Append lat, lon, and vertical level
    tc_lats[zcounter] = tc_lat

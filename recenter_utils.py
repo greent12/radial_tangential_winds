@@ -116,7 +116,7 @@ def cut_latlons(lons,lats,latlon_dim,lon0,lat0,npoints):
       return lons_bool,lats_bool
  
    #Calculate distance of all lat/lon pairs from given center
-   r = calc_distance_from_point(lons2d,lats2d,lon0,lat0)
+   r = haversine(lons2d,lats2d,lon0,lat0)
    [I,J] = np.where(r == np.min(r))
    I=I[0]
    J=J[0] 
