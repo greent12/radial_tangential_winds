@@ -6,6 +6,7 @@ warnings.filterwarnings("ignore")
 from uv_to_rt_winds import uv_to_rt
 from recenter_utils import find_nearest,find_nearest_ind
 import recenter_utils
+from rxpad_check import check_rxpad
 
 #fortran import, could be used but still needs work
 #from ideal_angle import create_ideal_angle
@@ -94,6 +95,10 @@ def recenter_tc(uwind,vwind,ideal_angle,lons,lats,num_sectors,dist_coeff,wind_co
 
    # Set assumed previous error difference to infinity; will be replaced in loop:
    prev_mean_dif =  np.inf
+
+   #Tyler 02/01/21
+   # make sure that wind speed within searching area is not all nan's. If so, have to bump up rxpad
+   rxpad=check_rxpad(lons,lats,uwind,vwind,pnyi,pnxi,rad_gaussian,curr_delta,rxpad)
 
    ### Begin TC center search ###
 
